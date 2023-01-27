@@ -16,6 +16,8 @@ from sklearn.metrics import ConfusionMatrixDisplay
 import matplotlib 
 import matplotlib.pyplot as plt
 
+import seaborn as sns
+
 pd.set_option('max_colwidth', 1000)
 
 df = pd.read_csv("signatury.tsv", sep="\t", header=0)
@@ -23,7 +25,7 @@ df = pd.read_csv("signatury.tsv", sep="\t", header=0)
 # musíme odstranit NaN hodnoty, jinak nám bude CountVectorizer hlásit chybu
 df = df.fillna("")
 
-print(df.head())
+# print(df.head())
 
 
 # pokud se signatura vyskytuje jen jednou, dojde při vektorizaci k chybě. 
@@ -37,25 +39,35 @@ for signatura, count  in value_counts.items():
         df.drop(to_remove, inplace=True)
 
 
-count_vec = CountVectorizer()
-unknown_vec = CountVectorizer()
 
-# tady vypíšeme knížky bez signatury
-unknowns = df[df['signatura'] == 'Unknown']
-df = df.drop(df[df['signatura'] == 'Unknown'].index)
+# přidáme prefix kw_ ke všem klíčovým slovům, trošku to zlepší přesnost
+def add_kw(x):
+    temp = []
+    for word in x.split(" "):
+        temp.append("kw_" + word)
+    y =  " ".join(temp)
+    return y
+
+df['keywords'] = df['keywords'].apply(add_kw)
+
+
+
+
 
 
 # tfvectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, min_df=5)
 
 # spojíme název knihy a klíčový slova. ty použijeme dvakrát, aby měly větší váhu
 text = df['text'] + " " +  df['keywords'] + " " + df['keywords']
-unknown_text = unknowns['text'] + " " +  unknowns['keywords'] + " " + unknowns['keywords']
+unknown = df[df['signatura'] == "Unknown"]
 
+unknown_text = unknown['text'] + " " + unknown['keywords'] + " " + unknown['keywords']
+
+count_vec = CountVectorizer(analyzer='word',ngram_range=(2,2), max_df=0.8)
 # bow = count_vec.fit_transform(df['text'])
 bow = count_vec.fit_transform(text)
-print(bow)
+# print(bow)
 
-unknown_search = unknown_vec.fit_transform(unknown_text)
 # tfvectorizer má menší přesnost, kupodivu
 # bow = tfvectorizer.fit_transform(text)
 # tohle brutálně zpomalí zpracování, třeba 10x
@@ -67,8 +79,13 @@ unknown_search = unknown_vec.fit_transform(unknown_text)
 # X = pd.DataFrame(np.vstack([bow,keywords]).T, columns = ['text', 'keywords'])
 y = df['signatura']
 
+def filter_unknown(X,y):
+    pass
+
+
+
 # X_train, X_test, kw_train, kw_test, y_train, y_test = train_test_split(bow, keywords, y, test_size=0.3, stratify=y)
-X_train, X_test, y_train, y_test = train_test_split(bow, y, test_size=0.05, stratify=y)
+X_train, X_test, y_train, y_test = train_test_split(bow, y, test_size=0.25, stratify=y)
 
 # tohle je brutálně pomalý a vypisuje chyby, očividně to potřebuje ty data ještě upravit
 # model = LogisticRegressionCV().fit(X_train, y_train)
@@ -90,19 +107,14 @@ print('F1 score:', f1_score(y_test, y_pred, average="macro"))
 # print(y_pred)
 # print(y_test)
 
+
+
 i = 0
 for id, signatura in y_test.head(20).items():
     print(y_pred[i], signatura, df.at[id, 'text'], df.at[id, 'keywords'])
     i=i+1
 
-unknown_pred = model.predict(unknown_search)
-
-print(unknown_pred)
-
-# for i in range(0,20):
-#     # row_no = y_test.at[i]
-#     row_no = ""
-#     orig_sig = y_test.iloc[i]
-#     print(y_pred[i], row_no, orig_sig) 
+# for id, signatura in df[df['signatura']=="Unknown"].items():
+    # print(id,X_test[id])
 
 
