@@ -58,14 +58,24 @@ df['keywords'] = df['keywords'].apply(add_kw)
 # tfvectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, min_df=5)
 
 # spojíme název knihy a klíčový slova. ty použijeme dvakrát, aby měly větší váhu
-text = df['text'] + " " +  df['keywords'] + " " + df['keywords']
+df['search'] = df['text'] + " " +  df['keywords'] + " " + df['keywords']
+# získáme dva soubory, u jedněch signaturu známe, u druhých ne
 unknown = df[df['signatura'] == "Unknown"]
+known   = df[df['signatura'] != "Unknown"]
 
-unknown_text = unknown['text'] + " " + unknown['keywords'] + " " + unknown['keywords']
 
+known_text = known['search']
+unknown_text = unknown['search']
+# unknown_text = unknown['text'] + " " + unknown['keywords'] + " " + unknown['keywords']
+
+# nejdřív zvektorizujeme všechny tokeny. používáme bigramy, podstatně to zvyšuje přesnost
 count_vec = CountVectorizer(analyzer='word',ngram_range=(2,2), max_df=0.8)
+count_vec.fit(df['search'])
 # bow = count_vec.fit_transform(df['text'])
-bow = count_vec.fit_transform(text)
+# učící data
+bow = count_vec.transform(known_text)
+# knížky bez signatury k vyhledání
+to_find = count_vec.transform(unknown_text)
 # print(bow)
 
 # tfvectorizer má menší přesnost, kupodivu
@@ -77,21 +87,21 @@ bow = count_vec.fit_transform(text)
 
  
 # X = pd.DataFrame(np.vstack([bow,keywords]).T, columns = ['text', 'keywords'])
-y = df['signatura']
-
-def filter_unknown(X,y):
-    pass
+y = known['signatura']
 
 
 
+
+# tohle jsou testovací data,už nepotřebujeme
 # X_train, X_test, kw_train, kw_test, y_train, y_test = train_test_split(bow, keywords, y, test_size=0.3, stratify=y)
-X_train, X_test, y_train, y_test = train_test_split(bow, y, test_size=0.25, stratify=y)
+# X_train, X_test, y_train, y_test = train_test_split(bow, y, test_size=0.25, stratify=y)
 
 # tohle je brutálně pomalý a vypisuje chyby, očividně to potřebuje ty data ještě upravit
 # model = LogisticRegressionCV().fit(X_train, y_train)
 # --------------
-# Naive Bayes
-model = MultinomialNB().fit(X_train, y_train)
+# Naive Bayes - nejrychlejší a zároveň nejpřesnější
+# model = MultinomialNB().fit(X_train, y_train)
+model = MultinomialNB().fit(bow, y)
 # ------------------
 # o trošku pomalejší, než Bayes, přesnost podobná
 # model = svm.SVC().fit(X_train, y_train)
@@ -99,10 +109,12 @@ model = MultinomialNB().fit(X_train, y_train)
 # smodel = SelfTrainingClassifier(SGDClassifier())
 # model = smodel.fit(X_train, y_train)
 # --------------
-y_pred = model.predict(X_test)
+# y_pred = model.predict(X_test)
+y_pred = model.predict(to_find)
 
-print('Accuracy:', accuracy_score(y_test, y_pred))
-print('F1 score:', f1_score(y_test, y_pred, average="macro"))
+# vyhodnocení testovacích dat
+# print('Accuracy:', accuracy_score(y_test, y_pred))
+# print('F1 score:', f1_score(y_test, y_pred, average="macro"))
 
 # print(y_pred)
 # print(y_test)
@@ -110,8 +122,11 @@ print('F1 score:', f1_score(y_test, y_pred, average="macro"))
 
 
 i = 0
-for id, signatura in y_test.head(20).items():
-    print(y_pred[i], signatura, df.at[id, 'text'], df.at[id, 'keywords'])
+# print(unknown.head(20))
+for id in y_pred:
+    curr = unknown.iloc[i]
+    print(y_pred[i], curr['sysno'], curr['text'], curr['keywords'])
+    # print(y_pred[i], rec.at[id, 'text'], rec.at[id, 'keywords'])
     i=i+1
 
 # for id, signatura in df[df['signatura']=="Unknown"].items():
