@@ -1,47 +1,57 @@
 # get 
 from sys import argv, exit
-import re
-# from io import StringIO 
 import pymarc.marcxml as marcxml
 import pandas as pd
 
 
-records = {}
 
 class Marcpandas(marcxml.XmlHandler):
     """Get Marc name """
+
+    def get_records(self):
+        # I cannot get class constructor to get properly with macxml,
+        # so we initialize records object  here
+        if not self.records: 
+            self.records = {}
+        return self.records
 
     def process_record(self, record):
         # save keywords and title from a marc record
         keywords = []
         title = []
+        records = self.get_records()
+
+        # get sys number
         curr_id = record.get_fields('001')[0].value()
         
+        # there can be multiple 650 fields, so we need to process them all
+        # get only subfield $a from keywords
         for kw in record.get_fields("650"):
             aa = kw["a"]
             if aa:
                 keywords.append(aa)
         
-        # get specific fields from title
+        # get these specific fields from title
         title_fields = ["a", "b", "n", "p"]
+        # there can be only one 245 field
         ttl = record.get_fields("245")[0]
         for f in title_fields:
             field = ttl[f]
             if field:
                 title.append(field)
 
+        # construct strings and clean them
         title = " ".join(title).replace("/", "")
         keywords = ", ".join(keywords)
 
-        # print(f"sysno: {curr_id} {title} {keywords}" )
+        # records are saved under sys number
         records[curr_id] = {"title": title, "keywords": keywords}
-        # print(record['650'])
-        # print(type(record['650']))
 
 def load(filename):
-    marcxml.parse_xml(filename, Marcpandas())
-    return pd.DataFrame.from_dict(records,orient='index')
-    # return records
+    """Load Marcxml file and convert it to Pandas DataFrame"""
+    marc = Marcpandas()
+    marcxml.parse_xml(filename, marc)
+    return pd.DataFrame.from_dict(marc.get_records(),orient='index')
 
 
 if not len(argv) == 2:
