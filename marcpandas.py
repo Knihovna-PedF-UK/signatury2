@@ -54,18 +54,18 @@ def load(filename):
     return pd.DataFrame.from_dict(marc.get_records(),orient='index')
 
 
-if not len(argv) == 2:
-    print("Usage: python marcpandas.py marcxmlfile.xml")
-    exit()
+# if not len(argv) == 2:
+#     print("Usage: python marcpandas.py marcxmlfile.xml")
+#     exit()
 
-script, filename = argv
-
-
-# file = open(filename)
-
-data = load(filename)
+# script, filename = argv
 
 
-print(data)
+# # file = open(filename)
+
+# data = load(filename)
+
+
+# print(data)
 
 

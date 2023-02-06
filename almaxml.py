@@ -4,6 +4,7 @@ Process XML files produced by ALMA analytics
 
 import xml.sax as sax
 from sys import argv, exit
+import pandas as pd
 
 class AlmaXmlHandler(sax.ContentHandler):
     def __init__(self, mapping = {}):
@@ -52,24 +53,24 @@ class AlmaXmlHandler(sax.ContentHandler):
 
 
 def load(filename, mapping = { 'C5':'id', 'C1': 'barcode', 'C2': 'signatura', 'C0': 'signatura2', 'C3': 'type'}):
-    file = open(filename,"r")
+    # file = open(filename,"r")
     parser = sax.make_parser()
     handler = AlmaXmlHandler(mapping)
     parser.setContentHandler(handler)
-    parser.parse(file)
-    return handler.records
+    parser.parse(filename)
+    return pd.DataFrame.from_dict(handler.records,orient='index')
 
 
-if not len(argv) == 2:
-    print("Usage: python almaxml.py amlaxml.xml")
-    exit()
+# if not len(argv) == 2:
+#     print("Usage: python almaxml.py amlaxml.xml")
+#     exit()
 
-script, filename = argv
-
-
-# file = open(filename)
-
-data = load(filename)
+# script, filename = argv
 
 
-print(data)
+# # file = open(filename)
+
+# data = load(filename)
+
+
+# print(data)
