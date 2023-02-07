@@ -27,7 +27,9 @@ class AlmaXmlHandler(sax.ContentHandler):
         self.current_record = {}
 
     def setField(self, field, text):
-        self.current_record[field] = text
+        # sometimes, the characters method is called multiple times for the current tag.
+        # the last call would overwrite the previous text, so we need to concat them
+        self.current_record[field] = self.current_record.get(field, "") +  text
 
 
     def startElement(self, name, attributes):
@@ -49,6 +51,7 @@ class AlmaXmlHandler(sax.ContentHandler):
     def characters(self,text):
         if self.current_field:
             self.setField(self.current_field, text)
+            self.previous_text = text
 
 
 
