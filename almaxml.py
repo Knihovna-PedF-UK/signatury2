@@ -51,7 +51,6 @@ class AlmaXmlHandler(sax.ContentHandler):
     def characters(self,text):
         if self.current_field:
             self.setField(self.current_field, text)
-            self.previous_text = text
 
 
 
