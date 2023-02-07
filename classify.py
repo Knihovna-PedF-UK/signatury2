@@ -1,5 +1,10 @@
 import pandas as pd
 import numpy as np
+from sys import argv
+
+import marcpandas 
+import almaxml 
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
@@ -13,14 +18,24 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 from sklearn.metrics import f1_score
 from sklearn.metrics import ConfusionMatrixDisplay
-import matplotlib 
-import matplotlib.pyplot as plt
 
-import seaborn as sns
 
-pd.set_option('max_colwidth', 1000)
+def load_data(marcfile, almafile):
+    # load XML files into pandas
+    a = marcpandas.load(marcfile)
+    b = almaxml.load(almafile)
+    # join loaded files
+    d = pd.concat([a,b], axis=1)
+    # remove records without titles
+    d = d[d['title'].notna()]
+    return d
 
-df = pd.read_csv("signatury.tsv", sep="\t", header=0)
+
+script, marcfile, almafile = argv
+
+# df = pd.read_csv("signatury.tsv", sep="\t", header=0)
+
+df = load_data(marcfile, almafile)
 
 # musíme odstranit NaN hodnoty, jinak nám bude CountVectorizer hlásit chybu
 df = df.fillna("")
@@ -58,7 +73,7 @@ df['keywords'] = df['keywords'].apply(add_kw)
 # tfvectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, min_df=5)
 
 # spojíme název knihy a klíčový slova. ty použijeme dvakrát, aby měly větší váhu
-df['search'] = df['text'] + " " +  df['keywords'] + " " + df['keywords']
+df['search'] = df['title'] + " " +  df['keywords'] + " " + df['keywords']
 # získáme dva soubory, u jedněch signaturu známe, u druhých ne
 unknown = df[df['signatura'] == "Unknown"]
 known   = df[df['signatura'] != "Unknown"]
@@ -125,7 +140,7 @@ i = 0
 # print(unknown.head(20))
 for id in y_pred:
     curr = unknown.iloc[i]
-    print(y_pred[i], curr['sysno'], curr['text'], curr['keywords'])
+    print(y_pred[i], curr['id'], curr['title'], curr['keywords'])
     # print(y_pred[i], rec.at[id, 'text'], rec.at[id, 'keywords'])
     i=i+1
 
