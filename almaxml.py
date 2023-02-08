@@ -54,7 +54,7 @@ class AlmaXmlHandler(sax.ContentHandler):
 
 
 
-def load(filename, mapping = { 'C5':'id', 'C1': 'barcode', 'C2': 'signatura_jednotky', 'C0': 'signatura', 'C3': 'type'}):
+def load(filename, mapping = { 'C5':'id', 'C1': 'barcode', 'C2': 'signatura_jednotky', 'C0': 'signatura', 'C3': 'type', 'C6': "autor"}):
     # file = open(filename,"r")
     parser = sax.make_parser()
     handler = AlmaXmlHandler(mapping)
