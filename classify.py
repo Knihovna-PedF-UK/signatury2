@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from sys import argv
+import string
+
 
 import marcpandas 
 import almaxml 
@@ -50,7 +52,8 @@ def clean_data(df):
             df.drop(to_remove, inplace=True)
     
     # přidáme prefix kw_ ke všem klíčovým slovům
-    df['keywords'] = df['keywords'].apply(add_kw)
+    # df['keywords'] = df['keywords'].apply(add_kw)
+    df['keywords'] = [add_kw(kw) for kw in df['keywords']]
 
     # spojíme název knihy a klíčový slova. ty použijeme dvakrát, aby měly větší váhu
     df['search'] = df['title'] + " " +  df['keywords'] + " " + df['keywords']
@@ -117,7 +120,22 @@ def search(known, unknown):
     # print(y_test)
     return y_pred
 
+def make_shortcut(title, author):
+    # ostraníme mezery a nechtěné znaky z názvu
+    clean_title = "".join(title.split(" ")).strip(string.punctuation)
+    # zkonstruujeme zkrácený kód z autora a názvu knížky
+    short_author = ""
+    short_title  = clean_title[0:2]
+    # pokud autor chybí, použijeme 4 písmena z názvu
+    if pd.notna(author):
+        short_author = author[0:2]
+    else:
+        short_title = clean_title[0:4]
+    return f"{short_author}{short_title}"
 
+def save(filename, unknown, y_pred):
+    unknown.insert(2, "pred", y_pred)
+    unknown.to_excel(odsname, engine="odf", index = False)
 
 script, marcfile, almafile = argv
 
@@ -127,6 +145,9 @@ df = load_data(marcfile, almafile)
 df = clean_data(df)
 known, unknown = split_data(df)
 y_pred = search(known, unknown)
+
+# vytvoříme zkratku pro řazení na regále
+unknown["short"]  = [make_shortcut(title, author) for title, author in zip(unknown["title"], unknown["author"])]
 
 i = 0
 # print(unknown.head(20))
@@ -138,11 +159,8 @@ for id in y_pred:
 
 odsname = "signatury.ods"
 print(f"Writing to: {odsname}")
+save(odsname, unknown, y_pred)
 
-# unknown['pred'] = y_pred
-unknown.insert(2, "pred", y_pred)
-
-unknown.to_excel(odsname, engine="odf", index = False)
 # print(curr.iloc[y_pred])
 
 # for id, signatura in df[df['signatura']=="Unknown"].items():
