@@ -8,7 +8,7 @@ script, almafile = argv
 # load only record IDs
 df = almaxml.load(almafile, {'C5':'id'})
 # rename column to use the correct name in the xlsx file
-df = df.rename(columns={'id':'MMS_ID'})
+df = df.rename(columns={'id':'MMS ID'})
 
 # this doesn't seem to do anything, but the idea is to 
 # remove duplicated IDs
