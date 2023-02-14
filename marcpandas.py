@@ -30,6 +30,26 @@ class Marcpandas(marcxml.XmlHandler):
             aa = kw["a"]
             if aa:
                 keywords.append(aa)
+
+        abstract = []
+        for ab in record.get_fields("520"):
+            aa = ab["a"]
+            if aa:
+                abstract.append(aa)
+
+        mdt = []
+        for kw in record.get_fields("080"):
+            aa = kw["a"]
+            if aa:
+                mdt.append(aa)
+
+        publisher = [] 
+        year = []
+
+        for pub in record.get_fields("260"):
+            publisher.append(pub["b"])
+            year.append(pub["c"])
+
         
         # get these specific fields from title
         title_fields = ["a", "b", "n", "p"]
@@ -43,9 +63,13 @@ class Marcpandas(marcxml.XmlHandler):
         # construct strings and clean them
         title = " ".join(title).replace("/", "")
         keywords = ", ".join(keywords)
+        abstract = " ".join(abstract)
+        mdt = ", ".join(mdt)
+        publisher = ", ".join(publisher)
+        year = ", ".join(year)
 
         # records are saved under sys number
-        records[curr_id] = {"title": title, "keywords": keywords}
+        records[curr_id] = {"title": title, "keywords": keywords, "abstract": abstract, "mdt": mdt, "publisher": publisher, "year": year}
 
 def load(filename):
     """Load Marcxml file and convert it to Pandas DataFrame"""
