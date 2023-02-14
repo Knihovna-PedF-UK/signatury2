@@ -56,7 +56,7 @@ def clean_data(df):
     df['keywords'] = [add_kw(kw) for kw in df['keywords']]
 
     # spojíme název knihy a klíčový slova. ty použijeme dvakrát, aby měly větší váhu
-    df['search'] = df['title'] + " " +  df['keywords'] + " " + df['keywords'] + " " + df["publisher"] + " " + df["abstract"]
+    df['search'] = df['title'] + " " +  df['keywords'] + " " + df['keywords'] + " " + df["publisher"] + " " + df["abstract"] # + " " + df["mdt"]
     return df
 
 def split_data(df):
@@ -65,12 +65,15 @@ def split_data(df):
     known   = df[df['signatura'] != "Unknown"]
     return known, unknown
 
-def search(known, unknown):
+def search(others):
     # tahle funkce obsahuje spoustu kódu z dřívějších pokusů
     # tfvectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, min_df=5)
     
+    known, unknown = split_data(others)
     known_text = known['search']
     unknown_text = unknown['search']
+    # vytvoříme zkratku pro řazení na regále
+    unknown["short"]  = [make_shortcut(title, author) for title, author in zip(unknown["title"], unknown["author"])]
     # unknown_text = unknown['text'] + " " + unknown['keywords'] + " " + unknown['keywords']
     
     # nejdřív zvektorizujeme všechny tokeny. používáme bigramy, podstatně to zvyšuje přesnost
@@ -118,7 +121,13 @@ def search(known, unknown):
     
     # print(y_pred)
     # print(y_test)
-    return y_pred
+    return y_pred, unknown
+
+def split_textbooks(df):
+    "rozdělíme knihy na učebnice pro základní a střední školy a zbytek"
+    textbooks = df[df["signatura_jednotky"].str.startswith("U")]
+    others = df[df["signatura_jednotky"].str.startswith("U")==False]
+    return textbooks, others
 
 def make_shortcut(title, author):
     # ostraníme mezery a nechtěné znaky z názvu
@@ -133,8 +142,8 @@ def make_shortcut(title, author):
         short_title = clean_title[0:4]
     return f"{short_author}{short_title}"
 
-def save(filename, unknown, y_pred):
-    unknown.insert(2, "pred", y_pred)
+def save(filename, unknown):
+    # unknown.insert(2, "pred", y_pred)
     unknown.to_excel(odsname, engine="odf", index = False)
 
 script, marcfile, almafile = argv
@@ -143,23 +152,32 @@ script, marcfile, almafile = argv
 
 df = load_data(marcfile, almafile)
 df = clean_data(df)
-known, unknown = split_data(df)
-y_pred = search(known, unknown)
 
-# vytvoříme zkratku pro řazení na regále
-unknown["short"]  = [make_shortcut(title, author) for title, author in zip(unknown["title"], unknown["author"])]
+# rozdělíme knížky na signaturu U a zbytek, protože je řadíme do jiných 2. signatur
+textbooks, others = split_textbooks(df)
 
-i = 0
-# print(unknown.head(20))
-for id in y_pred:
-    curr = unknown.iloc[i]
-    print(y_pred[i], curr['id'], curr['title'], curr['keywords'], curr["abstract"])
-    # print(y_pred[i], rec.at[id, 'text'], rec.at[id, 'keywords'])
-    i=i+1
+
+y_pred, unknown = search(others)
+y_pred_tb, unknown_tb = search(textbooks)
+
+
 
 odsname = "signatury.ods"
 print(f"Writing to: {odsname}")
-save(odsname, unknown, y_pred)
+
+unknown["lokace"] = y_pred
+unknown_tb["lokace"] = y_pred_tb
+result = pd.concat([unknown, unknown_tb])
+i = 0
+# print(unknown.head(20))
+new_pred = np.concatenate(( y_pred,y_pred_tb ), axis=None)
+for id in new_pred:
+    curr = result.iloc[i]
+    print(new_pred[i], curr['id'], curr['title'], curr['keywords'], curr["abstract"])
+    # print(y_pred[i], rec.at[id, 'text'], rec.at[id, 'keywords'])
+    i=i+1
+save(odsname, result)
+
 
 # print(curr.iloc[y_pred])
 
