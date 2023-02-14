@@ -56,7 +56,7 @@ def clean_data(df):
     df['keywords'] = [add_kw(kw) for kw in df['keywords']]
 
     # spojíme název knihy a klíčový slova. ty použijeme dvakrát, aby měly větší váhu
-    df['search'] = df['title'] + " " +  df['keywords'] + " " + df['keywords']
+    df['search'] = df['title'] + " " +  df['keywords'] + " " + df['keywords'] + " " + df["publisher"] + " " + df["abstract"]
     return df
 
 def split_data(df):
@@ -153,7 +153,7 @@ i = 0
 # print(unknown.head(20))
 for id in y_pred:
     curr = unknown.iloc[i]
-    print(y_pred[i], curr['id'], curr['title'], curr['keywords'])
+    print(y_pred[i], curr['id'], curr['title'], curr['keywords'], curr["abstract"])
     # print(y_pred[i], rec.at[id, 'text'], rec.at[id, 'keywords'])
     i=i+1
 
